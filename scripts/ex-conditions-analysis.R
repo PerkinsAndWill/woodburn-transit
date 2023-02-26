@@ -123,7 +123,7 @@ pop_job_stat = stop_iso_union_pop_job_inters %>%
   select(-block_area,
          -intersection_area)
 
-write.xlsx(pop_job_stat, "output/pop_job_walkshed_quarter_mi_block.xlsx")
+# write.xlsx(pop_job_stat, "output/pop_job_walkshed_quarter_mi_block.xlsx")
 
 
 # Demographics =================================================================
@@ -133,7 +133,8 @@ demo_bg <- bg_acs_wdb_data %>%
          age_65_plus,
          age_15_to_17,
          poverty_line_200_plus,
-         TPI_SUM) %>% 
+         TPI_SUM,
+         race_poc_total) %>% 
   st_transform(coord_global) %>% 
   mutate(bg_area = st_area(.), # calculate area of each block
          bg_area_acre = units::set_units(bg_area, acre)) # convert unit from m^2 to acre
@@ -153,7 +154,7 @@ demo_stat <- stop_iso_union_demo_inters %>%
   select(-bg_area,
          -intersection_area)
 
-write.xlsx(demo_stat, "output/demographic_walkshed_quarter_mi_bg.xlsx")
+# write.xlsx(demo_stat, "output/demographic_walkshed_quarter_mi_bg.xlsx")
 
 # Ridership  ===================================================================
 ## calculate ridership within walkshed
@@ -208,4 +209,13 @@ ac_stat <- ac_stat %>%
 
 ridership_ac <- cbind(ridership_stat, ac_stat)
 
-write.xlsx(ridership_ac, "output/ridership_activity_center_walkshed_quarter_mi_bg.xlsx")
+# write.xlsx(ridership_ac, "output/ridership_activity_center_walkshed_quarter_mi_bg.xlsx")
+
+# Save Data ====================================================================
+
+
+list_of_datasets <- list("pop_job" = pop_job_stat,
+                         "demographic_bg" = demo_stat,
+                         "ridership_ac" = ridership_ac)
+
+write.xlsx(list_of_datasets, file = "output/existing/existing_result.xlsx")
