@@ -145,7 +145,8 @@ stop_iso_union_demo_inters <- st_intersection(demo_bg,stop_iso_union) %>%
          overlap_area = intersection_area_acre/bg_area_acre, # % of overlapped area
          age_65_plus_adj = age_65_plus*overlap_area, # % of overlapped area * pop
          age_15_to_17_adj = age_15_to_17*overlap_area,
-         poverty_line_200_plus_adj= poverty_line_200_plus*overlap_area) %>% 
+         poverty_line_200_plus_adj= poverty_line_200_plus*overlap_area,
+         race_poc_total_adj = race_poc_total*overlap_area) %>% 
   drop_units() 
 
 
