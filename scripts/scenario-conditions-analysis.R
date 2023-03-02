@@ -244,8 +244,8 @@ ac_func <- function(ac_data, walkshed_shp, scenario_num){
   return(ac_stat)
 }
 
-
-# Scenario 1 ===================================================================
+# Scenarios ====================================================================
+## Scenario 1 ===================================================================
 cur_scenario <- "scenario_1"
 walkshed_dir <- "output/woodburn_scenario_walkshed_quarter_mi/"
 
@@ -282,7 +282,7 @@ ridership_scenario_1 <- ridership_func(ridership_data, scen1_union, 1)
 ac_scenario_1 <- ac_func(ac_data, scen1_union, 1)
 
 
-# Scenario 2 ===================================================================
+## Scenario 2 ===================================================================
 
 cur_scenario <- "scenario_2"
 walkshed_dir <- "output/woodburn_scenario_walkshed_quarter_mi/"
@@ -319,7 +319,7 @@ ridership_scenario_2 <- ridership_func(ridership_data, scen2_union, 2)
 ac_scenario_2 <- ac_func(ac_data, scen2_union, 2)
 
 
-# Scenario 3 ===================================================================
+## Scenario 3 ===================================================================
 
 cur_scenario <- "scenario_3"
 walkshed_dir <- "output/woodburn_scenario_walkshed_quarter_mi/"
@@ -361,10 +361,10 @@ ridership_scenario_3 <- ridership_func(ridership_data, scen3_union, 3)
 ac_scenario_3 <- ac_func(ac_data, scen3_union, 3)
 
 
-# Scenario 4 ===================================================================
+## Scenario 4 ===================================================================
 
 cur_scenario <- "scenario_4"
-walkshed_dir <- "output/woodburn_scenario_walkshed_quarter_mi/"
+walkshed_dir <- "output/existing/woodburn_scenario_walkshed_quarter_mi/"
 
 dir.create(file.path("output/scenarios", cur_scenario))
 cur_dir <- paste0("output/scenarios/",cur_scenario)
@@ -399,7 +399,7 @@ demo_scenario_4 <- demographic_func(demo_bg, scen4_union, 4)
 ridership_scenario_4 <- ridership_func(ridership_data, scen4_union, 4)
 ac_scenario_4 <- ac_func(ac_data, scen4_union, 4)
 
-# Save Result ==================================================================
+## Save Result ==================================================================
 library("openxlsx")
 
 
@@ -433,5 +433,79 @@ list_of_datasets <- list("pop_job" = pop_job_scenario,
                          "demographic_bg" = demo_scenario,
                          "ridership_ac" = ridership_ac)
 write.xlsx(list_of_datasets, file = "output/scenarios/scenario_result.xlsx")
+
+
+# Individual GTFS line =========================================================
+
+## output summary table by individual line
+
+gtfs_scenario <- read_gtfs("input/gtfs/GTFS_Remix.zip")
+
+trips            <- gtfs_scenario$trips  
+stop_times       <- gtfs_scenario$stop_times 
+shapes           <- gtfs_scenario$shapes 
+routes           <- gtfs_scenario$routes 
+stops            <- gtfs_scenario$stops
+stops_geom       <- gtfs_scenario$stops %>%
+  filter(!is.na(stop_lon),!is.na(stop_lat)) %>%
+  st_as_sf(coords = c("stop_lon", "stop_lat"),
+           crs = coord_global) %>%
+  st_transform(crs = coord_local)
+
+routes <- routes %>% 
+  mutate(routes_scenario_name = paste(route_short_name,route_long_name, sep = "_"))
+
+scenario_rt_lst = routes$routes_scenario_name
+
+walkshed_shps_dir = "output/scenarios/woodburn_scenario_walkshed_quarter_mi/"
+
+pop_job_lst <- list()
+demo_lst <- list()
+ridership_lst <- list()
+ac_lst <- list()
+for(i in scenario_rt_lst){
+  
+  curr_shps_name = paste(i,"quarter_mi.shp", sep = "_")
+  curr_shps = st_read(paste0(walkshed_shps_dir,curr_shps_name))
+  
+  pop_job_curr <- pop_job_func(pop_job, curr_shps, i)
+  demo_curr <- demographic_func(demo_bg, curr_shps, i)
+  ridership_curr <- ridership_func(ridership_data, curr_shps, i)
+  ac_curr <- ac_func(ac_data, curr_shps, i)
+  
+  pop_job_lst[[i]] <- pop_job_curr
+  demo_lst[[i]] <- demo_curr
+  ridership_lst[[i]] <- ridership_curr
+  ac_lst[[i]] <- ac_curr
+  
+  print(i)
+
+}
+
+pop_job_df <- do.call("rbind", pop_job_lst)
+demo_df <- do.call("rbind", demo_lst)
+ridership_df <- do.call("rbind", ridership_lst)
+ac_df <- do.call("rbind", ac_lst)
+
+## Save Result =================================================================
+
+
+ridership_ac <- cbind(ridership_df %>% 
+                        select(-scenario), 
+                      ac_df)
+
+
+list_of_datasets <- list("pop_job" = pop_job_df,
+                         "demographic_bg" = demo_df,
+                         "ridership_ac" = ridership_ac)
+write.xlsx(list_of_datasets, file = "output/scenarios/by_individual_GTFS_line_result.xlsx")
+
+# Testing -------------------------------
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = bg_acs_wdb_data %>% 
+                st_transform(coord_global)) %>% 
+  addPolygons(data = curr_shps,
+              fillColor = 'red')
 
 
